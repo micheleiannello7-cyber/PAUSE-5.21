@@ -75,7 +75,7 @@ export function CategoryGrid({
           <Text testID="category-all-subtitle" style={styles.allSub} numberOfLines={2}>{t.any_topic_sub}</Text>
         </View>
         <View style={styles.allLight}><CategorySelectionLight id="all" color={palette.accents.all} active={allActive} /></View>
-        <CategoryTileEdge color={palette.accents.all} rounded={radius.lg} />
+        <CategoryTileEdge color={palette.accents.all} rounded={radius.lg} active={allActive} />
       </Pressable>
       </Animated.View>
 
@@ -106,7 +106,7 @@ export function CategoryGrid({
                 <Text testID={`category-count-${c.id}`} style={[styles.tileCount, dense && styles.denseCount]} numberOfLines={1}>{countFor(c)}</Text>
                 <CategorySelectionLight id={c.id} color={color} active={active} />
               </View>
-              <CategoryTileEdge color={color} />
+              <CategoryTileEdge color={color} active={active} />
             </Pressable>
             </Animated.View>
           );

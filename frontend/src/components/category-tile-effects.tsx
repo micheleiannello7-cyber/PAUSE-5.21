@@ -3,23 +3,44 @@ import { Animated, Platform, StyleSheet, View } from "react-native";
 import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop, Ellipse } from "react-native-svg";
 import { categoryTilePalette as palette, withAlpha } from "@/src/theme";
 
-/** Native SVG edge reflection: no opaque inner plate, no permanently lit bar. */
-export function CategoryTileEdge({ color, rounded = 17 }: { color: string; rounded?: number }) {
+/** Native SVG edge reflection. When `active`, the border/glow intensifies so
+ *  the whole tile is clearly illuminated in its colour (selected state). */
+export function CategoryTileEdge({ color, rounded = 17, active = false }: { color: string; rounded?: number; active?: boolean }) {
   const id = useId().replace(/:/g, "");
+  const opacity = useRef(new Animated.Value(active ? 1 : 0)).current;
+  useEffect(() => {
+    const animation = Animated.timing(opacity, { toValue: active ? 1 : 0, duration: 220, useNativeDriver: Platform.OS !== "web" });
+    animation.start();
+    return () => animation.stop();
+  }, [active, opacity]);
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Svg width="100%" height="100%">
-        <Defs>
-          <LinearGradient id={id} x1="0%" y1="0%" x2="80%" y2="100%">
-            <Stop offset="0" stopColor={palette.highlight} stopOpacity={0.75} />
-            <Stop offset="0.22" stopColor={color} stopOpacity={0.46} />
-            <Stop offset="0.52" stopColor={palette.highlight} stopOpacity={0.09} />
-            <Stop offset="1" stopColor={color} stopOpacity={0.2} />
-          </LinearGradient>
-        </Defs>
-        <Rect x="0.75" y="0.75" width="99%" height="99%" rx={rounded} fill="none" stroke={`url(#${id})`} strokeWidth="1.2" />
-      </Svg>
-    </View>
+    <>
+      {/* Base rim (always visible) */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Svg width="100%" height="100%">
+          <Defs>
+            <LinearGradient id={id} x1="0%" y1="0%" x2="80%" y2="100%">
+              <Stop offset="0" stopColor={palette.highlight} stopOpacity={0.75} />
+              <Stop offset="0.22" stopColor={color} stopOpacity={0.46} />
+              <Stop offset="0.52" stopColor={palette.highlight} stopOpacity={0.09} />
+              <Stop offset="1" stopColor={color} stopOpacity={0.2} />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0.75" y="0.75" width="99%" height="99%" rx={rounded} fill="none" stroke={`url(#${id})`} strokeWidth="1.2" />
+        </Svg>
+      </View>
+      {/* Selected-state glow: brighter tinted border + outer halo. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, {
+          opacity,
+          borderRadius: rounded,
+          borderWidth: 1.5,
+          borderColor: withAlpha(color, 0.95),
+          boxShadow: `0px 0px 22px ${withAlpha(color, 0.55)}, 0px 0px 42px ${withAlpha(color, 0.28)}, inset 0px 0px 18px ${withAlpha(color, 0.28)}` as any,
+        }]}
+      />
+    </>
   );
 }
 
