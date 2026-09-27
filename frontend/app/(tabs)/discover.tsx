@@ -2,10 +2,11 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { View, Text, Pressable, ActivityIndicator, Animated as RNAnimated, LayoutChangeEvent, Platform, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { api, StoryPreview, hasHero, heroUrl } from "@/src/api";
 import { makeStyles, useTheme, spacing, typography, radius, withAlpha } from "@/src/theme";
 import { useUserId } from "@/src/session";
@@ -14,7 +15,9 @@ import { getHomeOffCategories, saveHomeOffCategories } from "@/src/home-focus";
 import { PauseLogo } from "@/src/components/pause-logo";
 import { GradientButton } from "@/src/components/gradient-button";
 import { HomeCategoryTile } from "@/src/components/home-controls";
-import { HomeStoryDeck } from "@/src/components/home-story-deck";
+import { HomeStoryDeck, CardRect } from "@/src/components/home-story-deck";
+import { StoryMorph, MORPH_DURATION, MORPH_EASING } from "@/src/components/story-morph";
+import { useMorphHost } from "@/src/components/morph-host";
 import { HomeReadCounter } from "@/src/components/home-read-counter";
 import { HomeBackdrop } from "@/src/components/home-backdrop";
 import { ResumeCard } from "@/src/components/resume-card";
@@ -45,6 +48,7 @@ export default function Discover() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const userId = useUserId();
+  const qc = useQueryClient();
   const { t, lang } = useI18n();
   const styles = useStyles();
   const { colors } = useTheme();
@@ -194,7 +198,31 @@ export default function Discover() {
   }, [deckAreaH]);
   const cardHeight = Math.max(170, Math.min(deckAreaH - 20, width * 1.2));
   // Dalla card si parte sempre dall'introduzione (nessun salto al capitolo 1).
-  const openStory = useCallback((story: StoryPreview) => router.push(`/deep-dive/${story.id}`), [router]);
+  // Con la cornice della card toccata parte la transizione "morph": la
+  // copertina resta ferma e diventa quella del lettore, il resto della Home
+  // fa spazio (logo in alto, "riprendi" e categorie in basso) e il lettore
+  // entra sotto già identico. Senza cornice (o con "riduci movimento"): push normale.
+  const morph = useMorphHost();
+  const reducedMotion = useReducedMotion();
+  const making = useSharedValue(0);
+  const headerAway = useAnimatedStyle(() => ({ opacity: 1 - making.value, transform: [{ translateY: -26 * making.value }] }));
+  const belowAway = useAnimatedStyle(() => ({ opacity: 1 - making.value, transform: [{ translateY: 40 * making.value }] }));
+  // Al ritorno gli elementi riprendono posto; se sopra sta girando il percorso
+  // inverso (copertina che rientra nella card) lo fanno con lo stesso passo.
+  const morphActive = useRef(false);
+  morphActive.current = morph.active;
+  useFocusEffect(useCallback(() => {
+    making.value = withTiming(0, morphActive.current ? { duration: MORPH_DURATION, easing: MORPH_EASING } : { duration: 320 });
+  }, [making]));
+  const openStory = useCallback((story: StoryPreview, rect?: CardRect) => {
+    if (morph.active) return;
+    if (!rect || reducedMotion) { router.push(`/deep-dive/${story.id}`); return; }
+    const ready = qc.prefetchQuery({ queryKey: ["story", story.id], queryFn: () => api.story(story.id) });
+    making.value = withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic) });
+    const frame = [rect.x, rect.y, rect.width, rect.height].map(Math.round).join(",");
+    morph.show(<StoryMorph story={story} from={rect} premium={!!userState?.is_premium} ready={ready}
+      onCommit={() => router.push(`/deep-dive/${story.id}?morph=1&rect=${frame}`)} />);
+  }, [router, morph, reducedMotion, qc, making, userState?.is_premium]);
   const listenStory = useCallback((story: StoryPreview) => {
     if (userState?.is_premium) router.push(`/deep-dive/${story.id}?listen=1`);
   }, [router, userState?.is_premium]);
@@ -202,7 +230,7 @@ export default function Discover() {
   return (
     <View testID="home-screen" style={[styles.container, { paddingTop: insets.top }]}>
       <HomeBackdrop />
-      <View style={[styles.header, { width }]} testID="home-header">
+      <Animated.View style={[styles.header, { width }, headerAway]} testID="home-header">
         <PauseLogo prominent />
         <View style={styles.headerRight}>
           <HomeReadCounter count={completedCount ?? 0} />
@@ -213,7 +241,7 @@ export default function Discover() {
             </View>
           ) : null}
         </View>
-      </View>
+      </Animated.View>
       <View testID="home-content" style={[styles.content, { width }]}>
         <View style={styles.deckArea} onLayout={onDeckLayout} testID="home-deck-area">
         {showEmpty ? (
@@ -230,6 +258,7 @@ export default function Discover() {
           <View testID="discover-loading" style={styles.loading}><ActivityIndicator color={colors.brand} /></View>
         )}
         </View>
+        <Animated.View style={belowAway}>
         {showResume && resume ? (
           <View style={[styles.resumeSection, { marginHorizontal: gridPadding }]}>
             <ResumeCard progress={resume} onPress={() => router.push(`/deep-dive/${resume.story.id}`)} />
@@ -257,6 +286,7 @@ export default function Discover() {
             </View>
           </View>
         ) : null}
+        </Animated.View>
       </View>
       <MilestoneCelebration milestone={milestone} onClose={dismissMilestone} onStats={() => { dismissMilestone(); router.push("/stats"); }} />
     </View>

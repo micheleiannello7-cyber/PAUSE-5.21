@@ -59,15 +59,15 @@ export function CategorySelectionLight({ id, color, active }: { id: string; colo
       <Animated.View style={[styles.glow, { opacity }]} testID={`category-glow-${id}`}>
         <Svg width="100%" height="100%" viewBox="0 0 100 28">
           <Defs><RadialGradient id={gradientId} cx="50%" cy="50%" rx="50%" ry="50%">
-            <Stop offset="0" stopColor={color} stopOpacity={0.48} />
-            <Stop offset="0.45" stopColor={color} stopOpacity={0.16} />
+            <Stop offset="0" stopColor={color} stopOpacity={0.62} />
+            <Stop offset="0.45" stopColor={color} stopOpacity={0.22} />
             <Stop offset="1" stopColor={color} stopOpacity={0} />
           </RadialGradient></Defs>
           <Ellipse cx="50" cy="14" rx="48" ry="13" fill={`url(#${gradientId})`} />
         </Svg>
       </Animated.View>
       <Animated.View style={[styles.bar, { opacity, backgroundColor: color,
-        boxShadow: `0px 0px 7px ${withAlpha(color, 0.75)}` }]} testID={`category-selected-${id}`} />
+        boxShadow: `0px 0px 8px ${withAlpha(color, 0.95)}, 0px 0px 18px ${withAlpha(color, 0.55)}` }]} testID={`category-selected-${id}`} />
     </View>
   );
 }

@@ -8,7 +8,9 @@ import { StoryPreview } from "@/src/api";
 import { makeStyles } from "@/src/theme";
 import { HomeStoryCard } from "./home-story-card";
 
-type Props = { deck: StoryPreview[]; cursor: number; width: number; height: number; onChange: (index: number) => void; onOpen: (story: StoryPreview) => void; onListen?: (story: StoryPreview) => void };
+type Props = { deck: StoryPreview[]; cursor: number; width: number; height: number; onChange: (index: number) => void; onOpen: (story: StoryPreview, rect?: CardRect) => void; onListen?: (story: StoryPreview) => void };
+/** Cornice della card toccata, in coordinate finestra (per la transizione verso la lettura). */
+export type CardRect = { x: number; y: number; width: number; height: number };
 
 // Molla del centraggio: rapida, con un atterraggio appena molleggiato
 // (rapporto di smorzamento ≈ 0,8 → rimbalzo di pochi pixel, poi ferma).
@@ -141,7 +143,7 @@ export function HomeStoryDeck({ deck, cursor, width, height, onChange, onOpen, o
             const story = deck[cursor + slot];
             return <StoryLayer key={`${virtualPage + slot}-${story.id}`} story={story} slot={slot} page={virtualPage + slot}
               width={cardWidth} left={(width - cardWidth) / 2} stride={stride} position={position} tx={tx} nudge={nudge} travel={travel}
-              onOpen={() => { if (!dragged.value) onOpen(story); }}
+              onOpen={(rect) => { if (!dragged.value) onOpen(story, rect); }}
               onListen={onListen ? () => { if (!dragged.value) onListen(story); } : undefined} />;
           })}
         </View>
@@ -155,10 +157,18 @@ export function HomeStoryDeck({ deck, cursor, width, height, onChange, onOpen, o
 
 function StoryLayer({ story, slot, page, width, left, stride, position, tx, nudge, travel, onOpen, onListen }: {
   story: StoryPreview; slot: number; page: number; width: number; left: number; stride: number;
-  position: SharedValue<number>; tx: SharedValue<number>; nudge: SharedValue<number>; travel: SharedValue<number>; onOpen: () => void; onListen?: () => void;
+  position: SharedValue<number>; tx: SharedValue<number>; nudge: SharedValue<number>; travel: SharedValue<number>; onOpen: (rect?: CardRect) => void; onListen?: () => void;
 }) {
   const styles = useStyles();
   const reducedMotion = useReducedMotion();
+  const layerRef = useRef<Animated.View>(null);
+  // Al tocco si legge dove sta la card sullo schermo: la transizione verso la
+  // lettura parte esattamente da lì. Se la misura non arriva, apertura normale.
+  const open = () => {
+    const node = layerRef.current;
+    if (!node?.measureInWindow) { onOpen(); return; }
+    node.measureInWindow((x, y, w, h) => onOpen(w > 0 && h > 0 ? { x, y, width: w, height: h } : undefined));
+  };
   const animatedStyle = useAnimatedStyle(() => {
     const offset = page - position.value;
     const shift = tx.value / stride;
@@ -183,8 +193,8 @@ function StoryLayer({ story, slot, page, width, left, stride, position, tx, nudg
     };
   });
   return (
-    <Animated.View testID={`deck-layer-${slot === 0 ? "active" : slot < 0 ? "previous" : "next"}`} style={[styles.layer, { width, left }, animatedStyle]}>
-      <HomeStoryCard story={story} active={slot === 0} instance={`slot-${slot}`} onOpen={onOpen} onListen={onListen} />
+    <Animated.View ref={layerRef} testID={`deck-layer-${slot === 0 ? "active" : slot < 0 ? "previous" : "next"}`} style={[styles.layer, { width, left }, animatedStyle]}>
+      <HomeStoryCard story={story} active={slot === 0} instance={`slot-${slot}`} onOpen={open} onListen={onListen} />
     </Animated.View>
   );
 }

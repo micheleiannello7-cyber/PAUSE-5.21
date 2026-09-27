@@ -15,6 +15,8 @@ type ArtworkProps = {
   glass?: boolean;
   /** User's reference: full-size cinematic artwork, separate interactive light. */
   reference?: boolean;
+  /** Sfumatura verso il fondo tessera sulla parte bassa dell'oggetto (false quando il nome sta sotto, non sopra). */
+  fade?: boolean;
   /** Sorgente immagine alternativa (anteprime di nuove famiglie di icone). */
   uriOverride?: string;
 };
@@ -32,7 +34,7 @@ export function CategoryArtwork({ category, ...props }: ArtworkProps) {
   return <Artwork key={`${CATEGORY_VISUAL_MODE}:${uri}`} category={category} uri={uri} {...props} />;
 }
 
-function Artwork({ category, uri, testID, wide = false, compact = false, cornerRadius = radius.lg, glass = false, reference = false }: Omit<ArtworkProps, "uriOverride"> & { uri: string | null }) {
+function Artwork({ category, uri, testID, wide = false, compact = false, cornerRadius = radius.lg, glass = false, reference = false, fade = true }: Omit<ArtworkProps, "uriOverride"> & { uri: string | null }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
@@ -56,7 +58,7 @@ function Artwork({ category, uri, testID, wide = false, compact = false, cornerR
       </View> : null}
       {/* Quiet framing, not desaturation: the new objects retain their full
           colour. No luminous backplates or clips from the previous art family. */}
-      {reference && !wide ? <LinearGradient
+      {reference && !wide && fade ? <LinearGradient
         colors={[withAlpha(palette.surface, 0), withAlpha(palette.surface, 0), palette.surface, palette.surface]}
         locations={[0, 0.49, 0.70, 1]} style={StyleSheet.absoluteFill}
       /> : null}

@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
 
 import { ErrorBoundary } from "@/src/components/error-boundary";
+import { MorphHost } from "@/src/components/morph-host";
 import { queryClient } from "@/src/query-client";
 import { ThemeProvider, useTheme } from "@/src/theme";
 import { useLoadFonts } from "@/src/utils/fonts";
@@ -64,6 +65,7 @@ function AppStack({ fontsLoaded }: { fontsLoaded: boolean }) {
     <>
       <PrefsSync />
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      <MorphHost>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -83,12 +85,18 @@ function AppStack({ fontsLoaded }: { fontsLoaded: boolean }) {
         <Stack.Screen name="index" options={{ animation: "fade", animationDuration: 300 }} />
         <Stack.Screen name="onboarding" options={{ animation: "fade", animationDuration: 450 }} />
         <Stack.Screen name="(tabs)" options={{ animation: "fade", animationDuration: 450 }} />
-        {/* Il lettore gestisce da sé lo swipe verso destra (vedi <SwipeBack />). */}
-        <Stack.Screen name="deep-dive/[id]" options={{ gestureEnabled: false, fullScreenGestureEnabled: false }} />
+        {/* Il lettore gestisce da sé lo swipe verso destra (vedi <SwipeBack />).
+            Aperto dalla card della Home (morph=1) entra senza animazione nativa:
+            la transizione è il livello <StoryMorph /> sopra lo stack. */}
+        <Stack.Screen name="deep-dive/[id]" options={({ route }) => ({
+          gestureEnabled: false, fullScreenGestureEnabled: false,
+          animation: (route.params as { morph?: string } | undefined)?.morph === "1" ? "none" : "ios_from_right",
+        })} />
         <Stack.Screen name="pause-limit" options={{ animation: "fade_from_bottom", animationDuration: 420 }} />
         <Stack.Screen name="premium" options={{ presentation: "modal", animation: "slide_from_bottom", animationDuration: 400 }} />
         <Stack.Screen name="unlock" options={{ presentation: "modal", animation: "slide_from_bottom", animationDuration: 400 }} />
       </Stack>
+      </MorphHost>
     </>
   );
 }

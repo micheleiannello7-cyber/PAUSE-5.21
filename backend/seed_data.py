@@ -35,19 +35,19 @@ def _chapters(items):
 
 
 CATEGORIES = [
-    {"id": "scienza",       "name": "Scienza",       "icon": "planet-outline",    "color": "#00D2FF", "emoji_key": "science"},
-    {"id": "spazio",        "name": "Spazio",        "icon": "rocket-outline",    "color": "#B200FF", "emoji_key": "space"},
-    {"id": "tecnologia",    "name": "Tecnologia",    "icon": "hardware-chip-outline", "color": "#00E676", "emoji_key": "tech"},
-    {"id": "natura",        "name": "Natura",        "icon": "leaf-outline",      "color": "#00E676", "emoji_key": "nature"},
-    {"id": "animali",       "name": "Animali",       "icon": "paw-outline",       "color": "#FF9100", "emoji_key": "animals"},
-    {"id": "storia",        "name": "Storia",        "icon": "book-outline",      "color": "#FF6D00", "emoji_key": "history"},
-    {"id": "psicologia",    "name": "Psicologia",    "icon": "sparkles-outline",  "color": "#FF006A", "emoji_key": "mind"},
-    {"id": "corpo-umano",   "name": "Corpo umano",   "icon": "heart-outline",     "color": "#FF006A", "emoji_key": "body"},
-    {"id": "cultura",       "name": "Cultura",       "icon": "globe-outline",     "color": "#00D2FF", "emoji_key": "culture"},
-    {"id": "curiosita",     "name": "Curiosità",     "icon": "help-circle-outline", "color": "#B200FF", "emoji_key": "curiosity"},
-    {"id": "economia",      "name": "Economia & Denaro", "icon": "cash-outline",  "color": "#FFD600", "emoji_key": "money"},
-    {"id": "arte",          "name": "Arte & Design", "icon": "color-palette-outline", "color": "#FF4FD8", "emoji_key": "art"},
-    {"id": "geografia",     "name": "Geografia & Viaggi", "icon": "map-outline", "color": "#3FA9FF", "emoji_key": "geo"},
+    {"id": "scienza",       "name": "Scienza",       "icon": "planet-outline",    "color": "#00DFFF", "emoji_key": "science"},
+    {"id": "spazio",        "name": "Spazio",        "icon": "rocket-outline",    "color": "#A85AFF", "emoji_key": "space"},
+    {"id": "tecnologia",    "name": "Tecnologia",    "icon": "hardware-chip-outline", "color": "#4F8CFF", "emoji_key": "tech"},
+    {"id": "natura",        "name": "Natura",        "icon": "leaf-outline",      "color": "#00E878", "emoji_key": "nature"},
+    {"id": "animali",       "name": "Animali",       "icon": "paw-outline",       "color": "#FF9A3C", "emoji_key": "animals"},
+    {"id": "storia",        "name": "Storia",        "icon": "book-outline",      "color": "#E4B76A", "emoji_key": "history"},
+    {"id": "psicologia",    "name": "Psicologia",    "icon": "sparkles-outline",  "color": "#FF5CB8", "emoji_key": "mind"},
+    {"id": "corpo-umano",   "name": "Corpo umano",   "icon": "heart-outline",     "color": "#FF4D6D", "emoji_key": "body"},
+    {"id": "cultura",       "name": "Cultura",       "icon": "globe-outline",     "color": "#00DAB4", "emoji_key": "culture"},
+    {"id": "curiosita",     "name": "Curiosità",     "icon": "help-circle-outline", "color": "#A85AFF", "emoji_key": "curiosity"},
+    {"id": "economia",      "name": "Economia & Denaro", "icon": "cash-outline",  "color": "#FFE14D", "emoji_key": "money"},
+    {"id": "arte",          "name": "Arte & Design", "icon": "color-palette-outline", "color": "#E76BEF", "emoji_key": "art"},
+    {"id": "geografia",     "name": "Geografia & Viaggi", "icon": "map-outline", "color": "#B8F03C", "emoji_key": "geo"},
 ]
 
 CATEGORY_NAMES_EN = {

@@ -350,6 +350,13 @@ async def ensure_seed():
                     payload[k] = existing[k]
         await db.stories.update_one({"id": s["id"]}, {"$set": payload}, upsert=True)
     await db.stories.update_many({"kind": {"$exists": False}}, {"$set": {"kind": "story"}})
+    # Il colore della categoria è unico e caratteristico: ogni storia (anche
+    # quelle non nel seed) lo eredita sempre dalla propria categoria.
+    for c in CATEGORIES:
+        await db.stories.update_many(
+            {"category_id": c["id"], "category_color": {"$ne": c["color"]}},
+            {"$set": {"category_color": c["color"]}},
+        )
     retired = await retire_in_db(db)
     if retired:
         logger.info("Retired %s stories into stories_retired", retired)

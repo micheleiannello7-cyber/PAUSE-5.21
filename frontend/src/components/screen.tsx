@@ -5,14 +5,14 @@ import { ReactNode } from "react";
 import { Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import Animated, { FadeInRight, Easing } from "react-native-reanimated";
 
-type Props = { children: ReactNode; style?: StyleProp<ViewStyle>; testID?: string };
+type Props = { children: ReactNode; style?: StyleProp<ViewStyle>; testID?: string; /** false: nessun ingresso animato sul web (es. arrivo con la transizione dalla card). */ animated?: boolean };
 
 const enter = FadeInRight.duration(360)
   .easing(Easing.out(Easing.cubic))
   .withInitialValues({ opacity: 0, transform: [{ translateX: 16 }] });
 
-export function Screen({ children, style, testID }: Props) {
-  if (Platform.OS !== "web") {
+export function Screen({ children, style, testID, animated = true }: Props) {
+  if (Platform.OS !== "web" || !animated) {
     return <View style={style} testID={testID}>{children}</View>;
   }
   return (

@@ -219,10 +219,12 @@ export const categoryTilePalette = {
   surface: "#040A14", top: "#0C1C30", text: "#E8F1F8", muted: "#A7B7CB",
   highlight: "#C7E3FF", lightOff: "#253348",
   accents: {
-    all: "#22DFFF", scienza: "#00DFFF", spazio: "#A85AFF", tecnologia: "#00DEFF",
-    natura: "#00E878", animali: "#FFB14F", storia: "#FFDA8C", psicologia: "#AC59FF",
-    "corpo-umano": "#FF4DA9", cultura: "#FFBC4D", economia: "#FFD367",
-    arte: "#E76BEF", geografia: "#00DAB4",
+    // Una tinta distinta per categoria, coerente con l'oggetto 3D dell'icona
+    // (foglia verde, chip blu, cervello rosso-corallo, tavolozza orchidea…).
+    all: "#22DFFF", scienza: "#00DFFF", spazio: "#A85AFF", tecnologia: "#4F8CFF",
+    natura: "#00E878", animali: "#FF9A3C", storia: "#E4B76A", psicologia: "#FF5CB8",
+    "corpo-umano": "#FF4D6D", cultura: "#00DAB4", economia: "#FFE14D",
+    arte: "#E76BEF", geografia: "#B8F03C",
   } as Record<string, string>,
 };
 

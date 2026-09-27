@@ -14,7 +14,12 @@ import { useTheme } from "@/src/theme";
 const OUT = { duration: 280, easing: Easing.out(Easing.cubic) };
 const EDGE = 44;
 
-export function SwipeBack({ children, onBack }: { children: ReactNode; onBack: () => void }) {
+export function SwipeBack({ children, onBack, onRelease }: {
+  children: ReactNode; onBack: () => void;
+  /** Al rilascio oltre la soglia: se restituisce true il ritorno è gestito altrove
+   *  (es. transizione verso la card della Home) e la schermata non scivola via. */
+  onRelease?: (x: number) => boolean;
+}) {
   const { width } = useWindowDimensions();
   const { colors } = useTheme();
   const x = useSharedValue(0);
@@ -26,6 +31,15 @@ export function SwipeBack({ children, onBack }: { children: ReactNode; onBack: (
     if (leaving.current) return;
     leaving.current = true;
     onBack();
+  };
+  const release = (offset: number) => {
+    if (leaving.current) return;
+    if (onRelease?.(offset)) {
+      // Il livello di transizione copre la schermata: sotto, rientra al suo posto senza farsi vedere.
+      setTimeout(() => { x.value = 0; }, 160);
+      return;
+    }
+    x.value = withTiming(dir.value * width, OUT, (done) => { if (done) runOnJS(leave)(); });
   };
 
   const pan = Gesture.Pan()
@@ -40,7 +54,7 @@ export function SwipeBack({ children, onBack }: { children: ReactNode; onBack: (
       if (dir.value === 0) return;
       const far = Math.abs(e.translationX) > width * 0.33 || Math.abs(e.velocityX) > 800;
       const sameWay = Math.sign(e.translationX) === dir.value;
-      if (far && sameWay) x.value = withTiming(dir.value * width, OUT, (done) => { if (done) runOnJS(leave)(); });
+      if (far && sameWay) runOnJS(release)(x.value);
       else x.value = withSpring(0, { damping: 18, stiffness: 180 });
     });
 

@@ -100,10 +100,10 @@ export function CategoryGrid({
               ]}
             >
               <LinearGradient colors={[palette.top, palette.surface]} style={styles.glassBg} pointerEvents="none" />
-              <CategoryArtwork category={c} reference testID={`category-art-${c.id}`} />
+              {/* L'oggetto 3D sta nella parte alta della tessera: il nome resta sotto, senza coprirlo. */}
+              <View style={styles.artBox} pointerEvents="none"><CategoryArtwork category={c} reference fade={false} testID={`category-art-${c.id}`} /></View>
               <View style={styles.labels}>
                 <Text testID={`category-name-${c.id}`} style={[styles.tileName, tileW >= 140 && styles.largeName, dense && styles.denseName]} numberOfLines={2}>{c.name}</Text>
-                <Text testID={`category-count-${c.id}`} style={[styles.tileCount, dense && styles.denseCount]} numberOfLines={1}>{countFor(c)}</Text>
                 <CategorySelectionLight id={c.id} color={color} active={active} />
               </View>
               <CategoryTileEdge color={color} active={active} />
@@ -140,12 +140,13 @@ const useStyles = makeStyles((colors) => ({
     backgroundColor: palette.surface,
   },
   denseTile: { aspectRatio: 0.76, minHeight: 0, borderRadius: 14 },
+  // Riquadro dell'oggetto 3D: in alto, un po' più stretto della tessera, così
+  // finisce sopra alla zona del nome (niente scritte sopra all'icona).
+  artBox: { position: "absolute", top: 2, left: "9%", width: "82%", aspectRatio: 1 },
   labels: { paddingHorizontal: 4, paddingBottom: 3, alignItems: "center" },
   tileName: { color: palette.text, fontFamily: typography.bodyMedium, fontSize: 12.5, lineHeight: 16, minHeight: 32, textAlign: "center", verticalAlign: "middle" },
   largeName: { fontSize: 15, lineHeight: 18, minHeight: 36 },
   denseName: { fontSize: 10, lineHeight: 12.5, minHeight: 25 },
-  tileCount: { color: palette.muted, fontFamily: typography.body, fontSize: 9, lineHeight: 12, textAlign: "center" },
-  denseCount: { fontSize: 8, lineHeight: 10 },
   pressed: { opacity: 0.86, transform: [{ scale: 0.98 }] },
   allLight: { position: "absolute", bottom: 3, left: 0, right: 0 },
   glassBg: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },

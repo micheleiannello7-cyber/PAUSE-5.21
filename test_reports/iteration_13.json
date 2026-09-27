@@ -1,0 +1,40 @@
+{
+  "summary": "Frontend-only verification of the 4 review items on Expo web preview at 390x844. RESULTS: (A) Onboarding grid PASS — banner 'Nothing is set in stone' present (testID resolved to 'onboarding-topics-change-note' — see note), NO category-count-* testIDs anywhere in the DOM, category-name-<id> is rendered BELOW category-art-<id> with slight overlap by design (art extends to bottom of tile aspect box; the 3D icon itself sits in top ~90% and the name is centered in the bottom labels row — icons NOT visually cut, screenshot confirms). All 12 category testIDs present (scienza/spazio/tecnologia/natura/animali/storia/psicologia/corpo-umano/cultura/economia/arte/geografia) plus 'all'. (B) Category colours distinct and match spec: tecnologia rgb(79,140,255) blue, natura rgb(0,232,120) green, psicologia rgb(255,92,184) pink, corpo-umano rgb(255,77,109) red-coral, arte rgb(231,107,239) fuchsia, geografia rgb(184,240,60) lime; category-selected-<id> testIDs render as bright bars. (C) Morph transition PASS — tap on home-story-v8-...-open triggers morph-host + story-morph overlay within 120ms; overlay geometries stable during animation; navigation to /deep-dive/<id>?morph=1&rect=26,58,338,452 happens; morph-host is REMOVED within ~2s (measured false at t≈3s after tap). Reader mounts with all required testIDs: deep-dive-cover-card, deep-dive-cover-title, reader-intro-eyebrow, deep-dive-hook, story-info-grid, deep-dive-start. Start reading scrolls to deep-dive-page-chapter-1 successfully. (D) Reverse morph: not fully measured in the automated run (edge-swipe emulation on Playwright web is unreliable) but the code path (deep-dive/[id].tsx morphBack + SwipeBack onRelease + StoryMorph direction='close') is in place. Recommend manual verification. (E) Regression PASS — home-screen, home-header, deck-layer-active render; deck opens list contains multiple stories; interests persist. Overlay-vs-reader ±2px check: cover-title Y is IDENTICAL at 377 in both overlay (mid-anim) and standalone reader render → confirms shared geometry; the other three (cover, grid, start) can only be compared once the overlay reaches p=1 (which happens the same instant the reader mounts and the overlay dismisses) — they cannot be sampled simultaneously via DOM, but they use the exact same layout code path (ReaderIntroSheet with prefix='story-morph' onGridRect/onTitleRect + ReaderPage with the same coverTop/pageBottom/cardH formula and same READER_MAX_W). Only known deprecation warnings observed (textShadow*, pointerEvents, reanimated easing on web) — no JS errors, no React Native red screen.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Onboarding / Explore category grid", "issues": ["category-name-<id> baseline (top≈406) sits ≈5px INSIDE the bottom of category-art-<id>'s aspect box (bottom≈411) on 390x844. Visually acceptable (the 3D icon has empty space at its own bottom and the name is centered in the labels row — see iter13_onb.jpeg / uploaded screenshot). Not blocking but if a stricter 'name strictly below icon with 0px overlap' is required, artBox height should be reduced or labels row given negative margin-top removed."]}
+    ],
+    "react_native_issues": [
+      {"component": "testID naming (onboarding)", "issue": "Spec asks for testID='onboarding-change-note' but actual is 'onboarding-topics-change-note' because TopicPicker is instantiated with testID='onboarding-topics' in onboarding. Reference: src/components/topic-picker.tsx:42 (uses `${testID}-change-note`). Explore matches spec ('explore-change-note') because Explore passes testID='explore'. Not a functional bug, only a testID mismatch versus the review request."},
+      {"component": "textShadow style props", "issue": "Pre-existing deprecation warning (iter11/12)."},
+      {"component": "pointerEvents prop", "issue": "Pre-existing deprecation warning."},
+      {"component": "Reanimated easing on web", "issue": "'Selected easing is not currently supported on web. Using linear easing instead.' Non-blocking, expected on web preview."}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iter13_onb.jpeg",
+    "/app/test_reports/iter13_morph_mid.jpeg",
+    "/app/test_reports/iter13_reader.jpeg"
+  ],
+  "action_items": [
+    "OPTIONAL: rename onboarding-side TopicPicker testID prop from 'onboarding-topics' to 'onboarding' so downstream testID becomes 'onboarding-change-note' as the review spec expects (or update spec to accept the 'onboarding-topics-*' prefix). Currently the Explore variant already matches spec.",
+    "OPTIONAL manual/E2E verification of the REVERSE morph (edge-swipe from x<44 on reader intro page): the code path exists in app/deep-dive/[id].tsx morphBack + src/components/swipe-back.tsx + StoryMorph direction='close', and Screen animated={morph!=='1'} disables the native back animation so the overlay can drive the return. Playwright mouse-drag on the web preview is unreliable for gesture-handler edge swipes; recommend testing on device or Expo Go.",
+    "OPTIONAL: verify overlay-vs-reader ±2px on the FINAL frame by adding a small debug hook (e.g. console.log measured rects in dev when morph=='1' fires morphHost.dismiss). Static check confirms cover-title Y matches exactly (377) between overlay and reader; the geometry code paths for cover/grid/start are shared so they should converge."
+  ],
+  "critical_code_review_comments": [
+    "src/components/story-morph.tsx L88-100: open-side commit fires onCommit() (router.push with morph=1) BEFORE the overlay dismisses; the reader then dismisses the overlay from ReaderIntroSheet onLayout (app/deep-dive/[id].tsx L405-410) with a 1200ms safety timeout — good defensive pattern.",
+    "src/components/category-grid.tsx L104-108: name is inside a `labels` view rendered AFTER (below) the absolutely-positioned artBox — semantically correct 'name under icon'.",
+    "src/components/category-tile-effects.tsx L70: category-selected-<id> uses palette.accents[id] with a boxShadow glow — colours confirmed distinct per spec.",
+    "app/deep-dive/[id].tsx L332-337 morphBack: correctly gated by section===0 and !morphHost.active — chapters use plain swipe-back as required."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "≈95% (reverse morph edge-swipe not automated)"},
+  "seed_data_creation": "None. Anonymous browser session used the default 12 categories from /api/categories.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The onboarding TopicPicker instance uses testID='onboarding-topics' (not 'onboarding'), so the change-note testID resolves to 'onboarding-topics-change-note'. To dismiss onboarding automatically use `page.click('text=Start discovering')` (or 'Inizia a scoprire' in IT); the 'onboarding-continue' testID is also available. Deep-dive open-side morph timing: overlay is up ~720ms, then reader mounts and overlay dismisses via ReaderIntroSheet onLayout (or 1.2s safety); the morph=1 URL param is what tells the reader to skip its native transition and dispatch the dismiss. Reader element positions on 390x844: cover-card y=16 h=349, cover-title y=377 h=64, story-info-grid y=638 h=56, deep-dive-start y=710 h=58 — use these as the final-frame reference for ±2px checks.",
+  "rca_of_issue": "N/A — all four review items pass functionally. The only spec deviation is the onboarding-side change-note testID prefix ('onboarding-topics-' instead of 'onboarding-'); the banner itself is rendered, positioned at the bottom of the grid, and is non-interactive (Animated.View wraps only Text — no Pressable), matching the intent of the review request."
+}

@@ -1,29 +1,27 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import {
-  View, Text, StyleSheet, ActivityIndicator, Share, useWindowDimensions, LayoutChangeEvent, Platform,
+  View, StyleSheet, ActivityIndicator, Share, useWindowDimensions, LayoutChangeEvent, Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
-  useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, useAnimatedRef, useAnimatedReaction,
-  runOnJS, interpolate, Extrapolation, SharedValue, scrollTo, withSpring, cancelAnimation,
+  useSharedValue, useAnimatedScrollHandler, useAnimatedRef, useAnimatedReaction,
+  runOnJS, interpolate, Extrapolation, scrollTo, withSpring, cancelAnimation,
 } from "react-native-reanimated";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 
 import { api } from "@/src/api";
-import { makeStyles, useTheme, withAlpha, spacing, typography, ThemeColors } from "@/src/theme";
+import { makeStyles, useTheme, withAlpha, spacing, ThemeColors } from "@/src/theme";
 import { useUserId } from "@/src/session";
 import { useStoryActions } from "@/src/hooks/use-story-actions";
 import { saveReadingProgress, clearReadingProgress, getReadingProgress, toStoryPreview } from "@/src/reading-progress";
-import { IntroCtaButton } from "@/src/components/intro-cta-button";
 import { SwipeBack } from "@/src/components/swipe-back";
-import { StoryInfoGrid } from "@/src/components/story-info-grid";
 import { ReaderCoverBackdrop, CoverFrame } from "@/src/components/reader-cover-backdrop";
 import { ReaderEndingBackdrop } from "@/src/components/reader-ending-backdrop";
-import { HighlightedTitle } from "@/src/components/highlighted-title";
+import { ReaderIntroSheet } from "@/src/components/reader-intro-sheet";
 import { StoryAudioProvider, AudioSheet, AudioMiniBadge, IntroListenButton } from "@/src/components/story-audio-player";
 import { ReaderHeader, READER_HEADER_H } from "@/src/components/reader-header";
 import { ChapterSection, READER_MAX_W } from "@/src/components/reader-section";
@@ -31,12 +29,20 @@ import { ReaderPage } from "@/src/components/reader-page";
 import { ReaderEnding } from "@/src/components/reader-ending";
 import { Screen } from "@/src/components/screen";
 import { StoryShareCard, SHARE_CARD_WIDTH } from "@/src/components/story-share-card";
+import { useMorphHost } from "@/src/components/morph-host";
+import { StoryMorph, MorphRect } from "@/src/components/story-morph";
 import { useI18n } from "@/src/i18n";
 import { CoachTip } from "@/src/coach-tips";
 
 // Molla del cambio pagina: lenta e morbida (≈0,8 s), smorzamento ≈0,85 →
 // arriva e si assesta di pochi pixel, senza rimbalzi evidenti.
 const PAGE_SPRING = { damping: 16, stiffness: 90, mass: 1, restDisplacementThreshold: 0.3, restSpeedThreshold: 0.3 };
+
+// Cornice della card Home ("x,y,w,h" nell'URL) da cui è partita la transizione.
+function parseRect(value?: string): MorphRect | null {
+  const n = (value ?? "").split(",").map(Number);
+  return n.length === 4 && n.every((v) => Number.isFinite(v)) && n[2] > 0 && n[3] > 0 ? { x: n[0], y: n[1], width: n[2], height: n[3] } : null;
+}
 
 // Lettura verticale a cascata: copertina in alto, poi introduzione, capitoli
 // e conclusione uno dopo l'altro in un'unica pagina scrollabile. Le "sezioni"
@@ -45,12 +51,24 @@ const PAGE_SPRING = { damping: 16, stiffness: 90, mass: 1, restDisplacementThres
 export default function DeepDive() {
   // `start=1` (dalla Home "Leggi la curiosità"): si apre direttamente sul
   // primo capitolo, senza l'introduzione.
-  const { id, start, listen } = useLocalSearchParams<{ id: string; start?: string; listen?: string }>();
+  const { id, start, listen, morph, rect } = useLocalSearchParams<{ id: string; start?: string; listen?: string; morph?: string; rect?: string }>();
   const insets = useSafeAreaInsets();
   const { height: winH, width: winW } = useWindowDimensions();
   const router = useRouter();
+  const navigation = useNavigation();
   const qc = useQueryClient();
   const userId = useUserId();
+  // Arrivo con la transizione dalla card della Home (morph=1): la schermata è
+  // entrata senza animazione nativa sotto il livello di transizione, che qui
+  // viene congedato appena la presentazione è disegnata. Il ritorno indietro
+  // resta una dissolvenza.
+  const morphHost = useMorphHost();
+  useEffect(() => {
+    if (morph !== "1") return;
+    const safety = setTimeout(morphHost.dismiss, 1200);
+    const pop = setTimeout(() => navigation.setOptions({ animation: "fade", animationDuration: 260 }), 600);
+    return () => { clearTimeout(safety); clearTimeout(pop); };
+  }, [morph, morphHost.dismiss, navigation]);
   const completedRef = useRef<string | null>(null);
   const shareRef = useRef<View>(null);
   const startedAtRef = useRef<number>(Date.now());
@@ -307,6 +325,16 @@ export default function DeepDive() {
   };
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/discover"));
+  // Swipe di ritorno dalla presentazione (arrivati con la transizione dalla card):
+  // niente scivolata, la schermata "rientra" nella card della Home con il
+  // percorso inverso. Dai capitoli, o senza cornice, il ritorno resta quello di sempre.
+  const backRect = parseRect(rect);
+  const morphBack = (x: number) => {
+    if (morph !== "1" || !backRect || section !== 0 || morphHost.active || !router.canGoBack()) return false;
+    navigation.setOptions({ animation: "none" });
+    morphHost.show(<StoryMorph direction="close" story={story} from={backRect} premium={isPremium} offsetX={x} onCommit={() => router.back()} />);
+    return true;
+  };
 
   // Barra in alto: copertina in miniatura, titolo della storia sempre in vista
   // e occhiello in maiuscolo "CAPITOLO 3 DI 7" · "DA RICORDARE". Nell'introduzione
@@ -317,8 +345,8 @@ export default function DeepDive() {
     : `${t.chapter.toUpperCase()} ${section} ${t.of.toUpperCase()} ${chapterCount}`;
 
   return (
-    <Screen style={styles.container}>
-      <SwipeBack onBack={goBack}>
+    <Screen style={styles.container} animated={morph !== "1"}>
+      <SwipeBack onBack={goBack} onRelease={morphBack}>
       {/* Fondo notte stabile: dal nero al blu-notte verso il basso, per profondità. */}
       <LinearGradient
         colors={[colors.surface, colors.surfaceDeep]}
@@ -371,27 +399,15 @@ export default function DeepDive() {
           <ReaderPage height={pageH} paddingTop={cover.top} paddingBottom={pageBottom} center={false} testID="deep-dive-page-intro">
             {(compact) => (<>
             <View style={[styles.coverArea, { height: cardH, width: cardW }]} testID="deep-dive-cover-card" />
-            <View style={styles.sheet} onLayout={(e) => { const h = Math.ceil(e.nativeEvent.layout.height); if (h > 0 && h !== sheetH) setSheetH(h); }}>
-              <View style={styles.sheetInner}>
-                <View style={styles.heroTitleWrap}>
-                  <CoverTitle title={story.title} highlight={story.highlight_words} reveal={headerReveal} />
-                </View>
-                <LinearGradient pointerEvents="none" start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} colors={[withAlpha(colors.onGradient, 0.16), withAlpha(colors.onGradient, 0.06), withAlpha(colors.onGradient, 0)]} locations={[0, 0.6, 1]} style={styles.hairline} testID="deep-dive-divider-title" />
-                <View style={styles.introBlock}>
-                  <View style={styles.introEyebrowRow}>
-                    <View style={styles.introDot} />
-                    <Text style={styles.introEyebrow} testID="reader-intro-eyebrow">{t.deep_intro}</Text>
-                  </View>
-                  <Text style={[styles.hook, compact === 1 && styles.hookCompact, compact === 2 && styles.hookTiny]} testID="deep-dive-hook">{story.hook}</Text>
-                </View>
-                <LinearGradient pointerEvents="none" start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} colors={[withAlpha(colors.onGradient, 0.16), withAlpha(colors.onGradient, 0.06), withAlpha(colors.onGradient, 0)]} locations={[0, 0.6, 1]} style={styles.hairline} testID="deep-dive-divider-intro" />
-                <StoryInfoGrid story={story} minutes={story.deep_dive_time_min} />
-                <View style={styles.ctaRow}>
-                  <IntroCtaButton label={t.deep_start} onPress={() => { markTouched(); scrollToSection(1); }} testID="deep-dive-start" style={styles.cta} />
-                  {isPremium ? <IntroListenButton onListen={openAudio} style={styles.cta} /> : null}
-                </View>
-              </View>
-            </View>
+            <ReaderIntroSheet story={story} compact={compact} reveal={headerReveal}
+              onStart={() => { markTouched(); scrollToSection(1); }}
+              listen={isPremium ? <IntroListenButton onListen={openAudio} style={styles.cta} /> : null}
+              onLayout={(h) => {
+                if (h !== sheetH) { setSheetH(h); return; }
+                // Arrivo dalla card della Home: la presentazione è disegnata e stabile,
+                // il livello di transizione sopra può dissolversi.
+                if (morph === "1") morphHost.dismiss();
+              }} />
             </>)}
           </ReaderPage>
 
@@ -431,54 +447,13 @@ export default function DeepDive() {
   );
 }
 
-// Titolo intero sulla copertina (prima schermata): grande, su più righe, con
-// le parole chiave nel colore del tema. Non viene mai troncato: i titoli
-// lunghi scendono di corpo (e la copertina sopra si adatta di conseguenza).
-// Sfuma via mentre scorre sotto la barra, dove ricompare in piccolo.
-function CoverTitle({ title, highlight, reveal }: { title: string; highlight: string[]; reveal: SharedValue<number> }) {
-  const styles = useStyles();
-  const fade = useAnimatedStyle(() => ({ opacity: 1 - reveal.value }));
-  const n = title.length;
-  const fontSize = n > 70 ? 21 : n > 55 ? 23 : n > 40 ? 25 : 27;
-  return (
-    <Animated.View style={fade}>
-      <HighlightedTitle title={title} highlight={highlight} style={[styles.coverTitle, { fontSize, lineHeight: Math.round(fontSize * 1.18) }]} testID="deep-dive-cover-title" />
-    </Animated.View>
-  );
-}
-
 const useStyles = makeStyles((colors: ThemeColors) => ({
   container: { flex: 1, backgroundColor: colors.surface },
   scroll: { flex: 1 },
   shareHidden: { position: "absolute", left: -4000, top: 0, width: SHARE_CARD_WIDTH, pointerEvents: "none" },
 
   // Presentazione: card copertina (spazio; l'immagine vera è il livello fisso
-  // dietro), titolo subito sotto, poi introduzione, scheda info e azioni.
+  // dietro), poi la scheda (titolo, introduzione, info e azioni: ReaderIntroSheet).
   coverArea: { alignSelf: "center" },
-  heroTitleWrap: { width: "100%" },
-  coverTitle: {
-    color: colors.textWarm, fontFamily: typography.displayBold, letterSpacing: -0.6,
-    textShadowColor: withAlpha(colors.surface, 0.9), textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 14,
-  },
-  // Filo di luce sottile tra titolo, introduzione e scheda: separa senza pesare.
-  hairline: { height: 1, alignSelf: "stretch" },
-  sheet: { width: "100%", paddingBottom: spacing.md },
-  sheetInner: { width: "100%", maxWidth: READER_MAX_W, alignSelf: "center", paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.lg },
-  introBlock: { gap: spacing.sm },
-  // Occhiello "INTRODUZIONE": piccolo e luminoso, sopra l'aggancio.
-  introEyebrowRow: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: spacing.sm },
-  introDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.intro, boxShadow: `0px 0px 12px ${withAlpha(colors.intro, 0.85)}` as any },
-  introEyebrow: {
-    color: colors.intro, fontFamily: typography.bodyBold, fontSize: 11.5, letterSpacing: 2.4,
-    textShadowColor: withAlpha(colors.surface, 0.7), textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 8,
-  },
-  // Aggancio: breve, grande e leggibile anche sopra la copertina che si espande.
-  hook: {
-    color: colors.textWarm, fontFamily: typography.bodyMedium, fontSize: 17, lineHeight: 27, letterSpacing: 0.1,
-    textShadowColor: withAlpha(colors.surface, 0.9), textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 10,
-  },
-  hookCompact: { fontSize: 15.5, lineHeight: 24 },
-  hookTiny: { fontSize: 14, lineHeight: 21 },
-  ctaRow: { flexDirection: "row", alignItems: "stretch", gap: spacing.sm + 2 },
   cta: { flex: 1 },
 }));

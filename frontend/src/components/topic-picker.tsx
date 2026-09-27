@@ -38,6 +38,16 @@ export function TopicPicker({ categories, selected, modes, onToggleCategory, onT
       {status}
       <CategoryGrid compact glass staggerIn={staggerIn} disabled={disabled} categories={categories} columns={columns}
         selected={selected} modes={Array.from(modes)} onToggle={onToggleCategory} />
+      {/* Nota in fondo: le scelte non sono definitive, si cambiano quando si vuole. */}
+      <Animated.View entering={FadeIn.delay(staggerIn ? 700 : 120).duration(420)} style={styles.footNote} testID={`${testID}-change-note`}>
+        <LinearGradient pointerEvents="none" start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          colors={[withAlpha(ONB.cyan, 0.14), "rgba(12,26,58,0.55)", "rgba(120,60,255,0.10)"]} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} />
+        <View style={styles.footIcon}><Ionicons name="options-outline" size={18} color={ONB.cyan} /></View>
+        <View style={styles.footText}>
+          <Text style={styles.footTitle} testID={`${testID}-change-note-title`}>{t.onb_topics_change_t}</Text>
+          <Text style={styles.footBody} testID={`${testID}-change-note-text`}>{t.onb_topics_change_b}</Text>
+        </View>
+      </Animated.View>
     </View>
   );
 }
@@ -63,6 +73,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: withAlpha(ONB.cyan, 0.32), boxShadow: `0px 0px 24px ${withAlpha(ONB.cyan, 0.08)}` },
   hintIcon: { marginTop: 2 },
   hintText: { flex: 1, color: ONB.textSecondary, fontFamily: typography.body, fontSize: 13, lineHeight: 19 },
+  footNote: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.lg, padding: spacing.md, paddingRight: spacing.lg,
+    borderRadius: radius.lg, overflow: "hidden", borderWidth: 1, borderColor: withAlpha(ONB.cyan, 0.22), backgroundColor: "rgba(12,26,58,0.5)" },
+  footIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center",
+    backgroundColor: withAlpha(ONB.cyan, 0.1), borderWidth: 1, borderColor: withAlpha(ONB.cyan, 0.3), boxShadow: `0px 0px 18px ${withAlpha(ONB.cyan, 0.18)}` },
+  footText: { flex: 1, gap: 2 },
+  footTitle: { color: ONB.text, fontFamily: typography.bodyBold, fontSize: 13, lineHeight: 17 },
+  footBody: { color: ONB.textSecondary, fontFamily: typography.body, fontSize: 12, lineHeight: 17 },
   backdrop: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, overflow: "hidden" },
   orb: { position: "absolute", top: -140, right: -110, width: 340, height: 340, borderRadius: 170,
     backgroundColor: ONB.orb, boxShadow: "0px 0px 150px 70px rgba(31,75,255,0.16)" },
