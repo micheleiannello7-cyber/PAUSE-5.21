@@ -1,0 +1,32 @@
+{
+  "summary": "All 4 review items PASS on Expo web preview at 390x844. (1) BUG FIX verified: chapter containers now share ONE colour across every story regardless of category — corpo-umano (why-we-sleep), natura (aurora-borealis), spazio (black-holes-basics) and animali (bees-communicate) all render deep-dive-chapter-card-{n} borderColor=rgba(63,217,255,0.58) and reader-chapter-eyebrow-{n} color=rgb(63,217,255) uniformly on all 6 chapters. (2) Theme following: setting pause.theme.accent=tramonto (JSON-encoded, as expected by the storage wrapper) makes ALL chapters of both why-we-sleep and aurora-borealis switch together to border rgba(255,154,60,0.58) and eyebrow rgb(255,154,60); restoring aurora returns them to cyan. (3) Header layout with nickname: with display_name=Michele home-header (h=58) shows PauseLogo left, counter[240.6→296.4] and greeting[308.4→378] on the right — no overlap, both within 390px viewport; with long name Massimiliano the counter shifts left to [194.6→250.4] and greeting[262.4→378] — no overlap, still within viewport, name not truncated but fits due to greeting maxWidth=130. (4) Regression smoke: home-story-deck renders, deep-dive scrolls to 6 chapters, only known deprecation warnings (textShadow*, pointerEvents, reanimated easing) — no JS errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "textShadow style props", "issue": "Deprecation warning: '\"textShadow*\" style props are deprecated. Use \"textShadow\".' Pre-existing per iteration_11; not a regression."},
+      {"component": "pointerEvents prop", "issue": "Deprecation warning: 'props.pointerEvents is deprecated. Use style.pointerEvents'. Pre-existing per iteration_11."},
+      {"component": "Reanimated easing on web", "issue": "'Selected easing is not currently supported on web. Using linear easing instead.' Non-blocking."}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iter12_header_Michele.jpeg",
+    "/app/test_reports/iter12_header_Massimiliano.jpeg"
+  ],
+  "action_items": [
+    "Optional: continue the RN 0.76+ deprecation cleanup (textShadow* → textShadow shorthand, props.pointerEvents → style.pointerEvents) as previously noted in iteration_11."
+  ],
+  "critical_code_review_comments": [
+    "src/components/reader-section.tsx L66-99: tint is now colors.brand (theme accent). This is the correct fix — no residual reference to category tint anywhere in the reader; palette-based tinting has been removed as intended.",
+    "app/(tabs)/discover.tsx L267-272: headerRight uses gap: spacing.md (12) and greeting has maxWidth: 130 + numberOfLines=1 which explains why Massimiliano still fits without truncation but the counter shifts left rather than the name shrinking — behaviour is safe within 390px."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100%"},
+  "seed_data_creation": "Used the browser's anonymous pause.user_id and set display_name via POST /api/user/profile to 'Michele', then 'Massimiliano', then reset to 'A' (empty string not allowed by backend validation, so a short placeholder was used).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "pause.user_id is stored in localStorage as a RAW UUID string (not JSON-encoded), while every other key including pause.theme.accent goes through the storage wrapper which JSON.stringifies/parses — to set the accent from devtools use JSON.stringify('tramonto'). The backend rejects empty display_name (422 'must be 1-40 characters'); use a short placeholder like 'A' when resetting. Reader tint source is now theme accent (colors.brand) only, not category — src/story-palette.ts was deleted.",
+  "rca_of_issue": "Original bug: reader chapter containers were tinted from a per-category palette (src/story-palette.ts) so corpo-umano appeared pink, natura green, animali orange, etc. Fix (verified): src/components/reader-section.tsx ChapterSection now sets `const tint = colors.brand` — the current theme accent from useTheme() — and applies it to the card border, gradient overlay, eyebrow row, mark dot and highlighted title. Because colors.brand is derived at runtime from buildColors(scheme, accentId), the tint automatically follows theme changes, and because it does not depend on story.category it is identical across all stories. Measured evidence: 4 stories × 6 chapters = 24 chapters all reported border rgba(63,217,255,0.58) and eyebrow rgb(63,217,255) on default aurora, and 12 chapters (2 stories × 6) all switched to rgba(255,154,60,0.58) / rgb(255,154,60) after accent → tramonto."
+}

@@ -9,14 +9,14 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.ciaoapp.iuv0v0"
+      "bundleIdentifier": "com.emergent.pausecontrol.xpr4nz"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.emergent.ciaoapp.iuv0v0"
+      "package": "com.emergent.pausecontrol.xpr4nz"
     },
     "web": {
       "bundler": "metro",
@@ -38,7 +38,14 @@
       "expo-image",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@react-native-vector-icons/feather",
+      "@react-native-vector-icons/ionicons",
+      "@react-native-vector-icons/material-design-icons",
+      "expo-audio",
+      "expo-localization",
+      "expo-sharing",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

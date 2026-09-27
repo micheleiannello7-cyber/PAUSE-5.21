@@ -1,0 +1,28 @@
+{
+  "summary": "All 7 UI change items verified PASS on Expo web preview at 390x844. Onboarding jumps straight to topics (no intro/profile/format/dots), Home has new compact counter pill in header (~58px), old bottom badge removed, story cards restored to full width (~337.7px ≈ 86.6% of 390), Explore renders 4 tiles/row and fits without scroll, reader chapter cards + eyebrows share one uniform tint across chapters for both spazio and scienza (both map to #3FE0FF), counter dynamically increases after POST /api/user/complete, and Profile/Saved/Stats screens load without errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "textShadow style props", "issue": "Console: '\"textShadow*\" style props are deprecated. Use \"textShadow\".' Emitted in multiple places (onboarding topic-picker.tsx title, story-palette-derived styles). Not a regression, just deprecation warnings."},
+      {"component": "pointerEvents prop", "issue": "Console: 'props.pointerEvents is deprecated. Use style.pointerEvents' (home-story-card scrims, topic-picker backdrop, etc.). Not blocking."},
+      {"component": "Image resizeMode style prop", "issue": "'Image: style.resizeMode is deprecated. Please use props.resizeMode.' (Saved screen). Not blocking."}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional cleanup: migrate textShadow* -> textShadow shorthand and props.pointerEvents -> style.pointerEvents across scrim/backdrop components to silence RN 0.76+ deprecation warnings (non-blocking)."
+  ],
+  "critical_code_review_comments": [
+    "story-palette.ts groups spazio+scienza to the same #3FE0FF tint by design; the reader uniform-color requirement across chapters is verified — no hue shift between chapters was observed."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100%"},
+  "seed_data_creation": "None. Onboarded a fresh anonymous user (interests=[spazio, scienza]) and marked one story completed via POST /api/user/complete to validate counter dynamic update.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Onboarding starts at STEP 3 (topics) via START_STEP=3 in /app/frontend/app/onboarding.tsx. Format chips default to both modes. Home header pill=HomeReadCounter (32px h) navigates to /read-stories. Explore uses TopicPicker columns=4. Reader tint from src/story-palette.ts is single per story; chapter cards share it. Discover-batch max count param is 14. Bookmark tab route is /(tabs)/bookmarks (testID saved-screen).",
+  "rca_of_issue": "N/A — all requested items pass. Evidence: card width measured 337.73px (target 337.7=0.866*390), Explore scrollHeight==clientHeight==770 (no scroll), 4 tiles/row confirmed via bounding boxes (scienza/spazio/tecnologia/natura on y=408), reader borderTopColor rgba(63,224,255,0.58) and eyebrow color rgb(63,224,255) uniform across 6 chapters in both stories, counter went 0→1 after completion POST, header height=58, home-reading-progress element absent."
+}
