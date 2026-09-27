@@ -35,9 +35,9 @@ export function CategoryTileEdge({ color, rounded = 17, active = false }: { colo
         style={[StyleSheet.absoluteFill, {
           opacity,
           borderRadius: rounded,
-          borderWidth: 1.5,
-          borderColor: withAlpha(color, 0.95),
-          boxShadow: `0px 0px 22px ${withAlpha(color, 0.55)}, 0px 0px 42px ${withAlpha(color, 0.28)}, inset 0px 0px 18px ${withAlpha(color, 0.28)}` as any,
+          borderWidth: 1.75,
+          borderColor: withAlpha(color, 1),
+          boxShadow: `0px 0px 28px ${withAlpha(color, 0.78)}, 0px 0px 60px ${withAlpha(color, 0.42)}, inset 0px 0px 26px ${withAlpha(color, 0.4)}` as any,
         }]}
       />
     </>
